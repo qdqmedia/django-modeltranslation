@@ -4,6 +4,7 @@ from warnings import warn
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models import SubfieldBase
 from django.db.models.fields import Field, CharField, TextField
 
 from modeltranslation.settings import *
@@ -53,6 +54,8 @@ class TranslationField(Field):
     The translation field needs to know which language it contains therefore
     that needs to be specified when the field is created.
     """
+    __metaclass__ = SubfieldBase
+
     def __init__(self, translated_field, language, *args, **kwargs):
         # Update the dict of this field with the content of the original one
         # This might be a bit radical?! Seems to work though...
@@ -98,6 +101,9 @@ class TranslationField(Field):
 
     def to_python(self, value):
         return self.translated_field.to_python(value)
+
+    def get_db_prep_value(self, *args, **kwargs):
+        return self.translated_field.get_db_prep_value(*args, **kwargs)
 
     def get_internal_type(self):
         return self.translated_field.get_internal_type()
