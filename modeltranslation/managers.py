@@ -51,6 +51,8 @@ class I18nQuerySet(QuerySet):
 
 
 class TranslationManager(models.Manager):
+    use_for_related_fields = True
+
     def get_query_set(self):
         """
         Returns a patched query set, allowing clever filters
