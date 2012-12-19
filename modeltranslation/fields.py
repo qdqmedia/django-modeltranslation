@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.core.exceptions import ImproperlyConfigured
+from django.db import models
 from django.db.models import SubfieldBase
 from django.db.models.fields import Field, CharField, TextField
 
