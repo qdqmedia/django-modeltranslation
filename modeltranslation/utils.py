@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from contextlib import contextmanager
+from django.utils import six
 
 from django.utils.encoding import force_unicode
 from django.utils.translation import get_language as _get_language
@@ -34,7 +35,7 @@ def build_localized_fieldname(field_name, lang):
 
 def _build_localized_verbose_name(verbose_name, lang):
     return u'%s [%s]' % (force_unicode(verbose_name), lang)
-build_localized_verbose_name = lazy(_build_localized_verbose_name, unicode)
+build_localized_verbose_name = lazy(_build_localized_verbose_name, six.text_type)
 
 
 def _join_css_class(bits, offset):

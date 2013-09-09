@@ -16,6 +16,7 @@ from django.core.management import call_command
 from django.db.models import Q, F
 from django.db.models.loading import AppCache
 from django.test import TestCase
+from django.utils import six
 from django.utils.translation import get_language, trans_real
 
 from modeltranslation import settings as mt_settings
@@ -29,6 +30,8 @@ from modeltranslation.tests.translation import (FallbackModel2TranslationOptions
 from modeltranslation.tests.test_settings import TEST_SETTINGS
 from modeltranslation.utils import (build_css_class, build_localized_fieldname,
                                     auto_populate, fallbacks)
+
+from imp import reload
 
 try:
     from django.test.utils import override_settings
@@ -254,7 +257,7 @@ class ModeltranslationTest(ModeltranslationTestBase):
 
     def test_verbose_name(self):
         verbose_name = models.TestModel._meta.get_field('title_de').verbose_name
-        self.assertEquals(unicode(verbose_name), u'title [de]')
+        self.assertEquals(six.text_type(verbose_name), u'title [de]')
 
     def test_descriptor_introspection(self):
         # See Django #8248
@@ -900,20 +903,20 @@ class OtherFieldsTest(ModeltranslationTestBase):
         self.assertEqual(datetime.time(23, 42, 0), inst.time_de)
         self.assertEqual(None, inst.time_en)
 
-        inst.time = datetime.time(01, 02, 03)
+        inst.time = datetime.time(1, 2, 3)
         inst.save()
-        self.assertEqual(datetime.time(01, 02, 03), inst.time)
-        self.assertEqual(datetime.time(01, 02, 03), inst.time_de)
+        self.assertEqual(datetime.time(1, 2, 3), inst.time)
+        self.assertEqual(datetime.time(1, 2, 3), inst.time_de)
         self.assertEqual(None, inst.time_en)
 
         qs = models.OtherFieldsModel.objects.filter(time='01:02:03')
         self.assertEqual(len(qs), 1)
-        self.assertEqual(qs[0].time, datetime.time(01, 02, 03))
+        self.assertEqual(qs[0].time, datetime.time(1, 2, 3))
 
         trans_real.activate('en')
         inst.time = datetime.time(23, 42, 0)
         self.assertEqual(datetime.time(23, 42, 0), inst.time)
-        self.assertEqual(datetime.time(01, 02, 03), inst.time_de)
+        self.assertEqual(datetime.time(1, 2, 3), inst.time_de)
         self.assertEqual(datetime.time(23, 42, 0), inst.time_en)
 
     def test_descriptors(self):
@@ -1149,7 +1152,7 @@ class ModelValidationTest(ModeltranslationTestBase):
     def assertRaisesValidation(self, func):
         try:
             func()
-        except ValidationError, e:
+        except ValidationError as e:
             return e.message_dict
         self.fail('ValidationError not raised.')
 
