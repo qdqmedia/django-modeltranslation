@@ -98,6 +98,8 @@ class TranslationField(object):
     The translation field needs to know which language it contains therefore
     that needs to be specified when the field is created.
     """
+    __metaclass__ = SubfieldBase
+
     def __init__(self, translated_field, language, empty_value, *args, **kwargs):
         from modeltranslation.translator import translator
 
@@ -180,6 +182,9 @@ class TranslationField(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def get_db_prep_value(self, *args, **kwargs):
+        return self.translated_field.get_db_prep_value(*args, **kwargs)
 
     def __hash__(self):
         return hash((self.creation_counter, self.language))
@@ -383,3 +388,58 @@ class LanguageCacheSingleObjectDescriptor(object):
         lang = get_language()
         cache = build_localized_fieldname(self.accessor, lang)
         return "_%s_cache" % cache
+
+
+class i18nAutoSlugField(models.SlugField):
+    '''
+    An automatically-populated slug field
+    '''
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('max_length', 255)
+        kwargs.setdefault('editable', False)
+        self.populate_from = kwargs.pop('populate_from')
+        self.unique_with = kwargs.pop('unique_with')
+        super(i18nAutoSlugField, self).__init__(*args, **kwargs)
+
+    def pre_save(self, model_instance, add):
+        """
+        Automatically generates slug before save.
+
+        Slug is not generated in case it is set explicitly.
+        """
+        if hasattr(model_instance, 'do_not_regenerate_slugs') and model_instance.do_not_regenerate_slugs:
+            return getattr(model_instance, self.attname)
+        try:
+            assert getattr(model_instance, self.populate_from)
+            assert getattr(model_instance, self.unique_with)
+
+            # optimize in case of foreign key access - saves one db access
+            if isinstance(model_instance._meta.get_field(self.unique_with), models.ForeignKey):
+                unique_with = '%s_id' % self.unique_with
+            else:
+                unique_with = self.unique_with
+
+            # autogenerate the main slug.
+            # only do this once, when creating the model_instance
+            if add:
+                filters = {unique_with: getattr(model_instance, unique_with),
+                           self.attname: slugify(getattr(model_instance, self.populate_from))}
+                while model_instance.__class__.objects.filter(**filters).exclude(pk=model_instance.pk).exists():
+                    filters[self.attname] += '_'
+                setattr(model_instance, self.attname, filters[self.attname])
+
+        finally:
+            # autogenerate the i18n slugs. Only once.
+            for lang_code in LANGUAGES:
+                i18n_attname = '%s_%s' % (self.attname, lang_code)
+                i18n_populate_from = '%s_%s' % (self.populate_from, lang_code)
+                # django-modeltranslaton-added fileds are set to None by default
+                if not getattr(model_instance, i18n_attname) and getattr(model_instance, i18n_populate_from):
+                    filters = {self.unique_with: getattr(model_instance, self.unique_with),
+                               i18n_attname: slugify(getattr(model_instance, i18n_populate_from))}
+                    while model_instance.__class__.objects.filter(**filters).exclude(pk=model_instance.pk).exists():
+                        filters[i18n_attname] += '_'
+                    setattr(model_instance, i18n_attname, filters[i18n_attname])
+
+        return getattr(model_instance, self.attname)
