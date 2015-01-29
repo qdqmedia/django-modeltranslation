@@ -8,15 +8,13 @@ from django.test import TestCase
 from django.utils.translation import get_language
 from django.utils.translation import trans_real
 from django.utils.translation import ugettext_lazy
+from django.test.utils import override_settings
+
 
 from modeltranslation import translator
 from modeltranslation.settings import *
 
 # TODO: Tests for TranslationAdmin, RelatedTranslationField and subclasses
-
-settings.LANGUAGES = (('de', 'Deutsch'),
-                      ('en', 'English'))
-
 
 class RelatedModel(models.Model):
     reltitle = models.CharField(ugettext_lazy('Related Title'), max_length=255)
@@ -80,6 +78,8 @@ class ModeltranslationTestBase(TestCase):
         trans_real.deactivate()
 
 
+@override_settings(LANGUAGES = (('de', 'Deutsch'),
+                      ('en', 'English')))
 class ModeltranslationTest(ModeltranslationTestBase):
     """Basic tests for the modeltranslation application."""
     def test_registration(self):
@@ -793,6 +793,8 @@ translator.translator.register(TestModelAbstractB,
                                TranslationOptionsTestModelAbstractB)
 
 
+@override_settings(LANGUAGES = (('de', 'Deutsch'),
+                      ('en', 'English')))
 class ModeltranslationInheritanceTest(ModeltranslationTestBase):
     """Tests for inheritance support in modeltranslation."""
     def test_abstract_inheritance(self):
